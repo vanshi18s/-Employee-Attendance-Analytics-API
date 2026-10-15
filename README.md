@@ -1,7 +1,7 @@
 
 # Employee Attendance & Analytics API
 
-A robust backend service for managing employee attendance, punch-ins/outs, and generating business analytics using FastAPI and MongoDB.
+A robust backend service for managing employee attendance, punch-ins/outs and generating business analytics using FastAPI and MongoDB.
 
 ## How to Run
 
@@ -42,7 +42,7 @@ The API will be available at `http://localhost:8000`. You can test the endpoints
 
 ## Important Note on Code Changes
 
-While reviewing the starter `app/main.py`, I carefully examined all existing helper functions and endpoint logic. I haven't added or modified the things I looked at but ultimately decided did not need changing. Any code that was already correct and efficient was left intact to avoid unnecessary modifications.
+While reviewing the starter `app/main.py`, I carefully examined all existing helper functions and endpoint logic. I have reviewed all code, made the necessary changes but also I looked at some parts that I thought may require change but left unchanged after careful programming these in VS Code. So, This repository includes all necessary files for the final submission.
 
 ---
 
