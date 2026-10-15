@@ -1,6 +1,6 @@
 # REVIEW.md
 
-List every defect you found in the starter `app/main.py` (helpers and endpoints). For each one:
+List every defect found in the starter `app/main.py` (helpers and endpoints). For each one:
 
 | # | Where (function / line) | What is wrong | How you'd notice it (test, input, or symptom) | How you fixed it |
 |---|---|---|---|---|
@@ -11,6 +11,5 @@ List every defect you found in the starter `app/main.py` (helpers and endpoints)
 | 5 | POST /employees (line 102-121) | Concurrency issue mentioned in PS Part9 | By Reading the mentioned issue in problem statement and testing in UI | Implemented a unique index on emp_code and handled DuplicateKeyError to prevent duplicate employee records during concurrent requests, returning HTTP 409 for conflicts. |
 | 6 | GET /employees | The employee list showed incomplete or incorrectly counted results | saw empty strings in test part and no JSON Outputs in Swagger UI Test | corrected the page calculation, counting filtered employees, and sorting by emp_code. |
 | 7 | POST /attendance/punch-in | The code did not check whether the employee existed, mishandled overnight shifts and could allow duplicate records during simultaneous requests. | Found the errors by running test cases in UI. | fixed them using a 404 check, overnight date adjustment and a unique compound index with DuplicateKeyError handling. |
-| 8 |
+| 8 | GET /attendance | The endpoint did not validate pagination limits and fetched all matching attendance records into Python before sorting and paginating them, making it inefficient for large datasets. |  I checked the pagination logic against R10 and noticed that invalid page values and page sizes above 100 were accepted and  noticed that .find() fetched all matching documents before sorting and slicing them in Python. | I added FastAPI Query validation for page and page_size, and moved counting, sorting, skipping and limiting into MongoDB to improve performance. |
 
-Also note anything you looked at and decided was **not** a defect, and why.
