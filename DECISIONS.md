@@ -1,4 +1,4 @@
-# DECISIONS.md  (about 150-200 words in total - plain language, your own words)
+# DECISIONS.md 
 
 1. **Indexes.** Which indexes did you create, and which query or guarantee does each one serve? Which one did you consider and reject?
 2. **Punch-in race.** Two identical punch-in requests arrive at the same instant. Walk through exactly what happens in your code.
