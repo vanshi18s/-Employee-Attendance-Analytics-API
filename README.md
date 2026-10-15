@@ -83,6 +83,3 @@ If this API had to serve 100x the data volume, my primary focus would be on data
 * Utilizing **precomputed summary tables** (materialized views) generated nightly via cron jobs for the heavy historical statistics.
 * Upgrading to more advanced Python data-processing libraries or utilizing cloud infrastructure/GPU resources for extremely large, concurrent analytics computations.
 
-```
-
-```
