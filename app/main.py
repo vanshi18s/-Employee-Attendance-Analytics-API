@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymongo import MongoClient
+from decimal import Decimal, ROUND_HALF_UP
 
 load_dotenv()
 
@@ -33,18 +34,35 @@ app = FastAPI(title="Employee Attendance & Analytics API", version="2.0.0")
 def compute_late_minutes(punch_in: datetime, shift_start: str) -> int:
     h, m = map(int, shift_start.split(":"))
     start = punch_in.replace(hour=h, minute=m, second=0, microsecond=0)
-    minutes = int((punch_in - start).total_seconds() / 60)
-    return minutes if minutes > 10 else 0
+    elapsed_seconds = int((punch_in - start).total_seconds())
+    if elapsed_seconds > 10 * 60:
+        return elapsed_seconds // 60
+
+    return 0
+
 
 
 def compute_work_hours(punch_in: datetime, punch_out: datetime) -> float:
-    return round((punch_out - punch_in).total_seconds() / 3600, 2)
+    punch_in = punch_in.replace(microsecond=0)
+    punch_out = punch_out.replace(microsecond=0)
+
+    if punch_out < punch_in:
+        raise ValueError("Punch-out cannot be before punch-in")
+
+    seconds = (punch_out - punch_in).total_seconds()
+    hours = Decimal(str(seconds)) / Decimal("3600")
+
+    return float(
+        hours.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    )
+
 
 
 def compute_overtime(punch_out: datetime, shift_end: str, date_str: str) -> int:
     h, m = map(int, shift_end.split(":"))
     end = datetime.fromisoformat(date_str).replace(hour=h, minute=m, tzinfo=IST)
-    return max(0, int((punch_out - end).total_seconds() / 60))
+    minutes=int((punch_out - end).total_seconds() // 60)
+    return minutes if minutes >= 30 else 0
 
 
 # --------------------------------------------------------------------------- #
@@ -71,16 +89,34 @@ class PunchInIn(BaseModel):
 # --------------------------------------------------------------------------- #
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    try:
+        db.command("hello")
+        return {"status": "ok"}
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Database unavailable"
+        )
+
+
+from pymongo.errors import DuplicateKeyError
+
+db.employees.create_index("emp_code", unique=True)
 
 
 @app.post("/employees", status_code=201)
 def create_employee(body: EmployeeIn):
     if db.employees.find_one({"emp_code": body.emp_code}):
         raise HTTPException(409, "emp_code already exists")
+
     doc = body.model_dump()
     doc["created_at"] = datetime.now()
-    db.employees.insert_one(doc)
+
+    try:
+        db.employees.insert_one(doc)
+    except DuplicateKeyError:
+        raise HTTPException(409, "emp_code already exists")
+
     doc.pop("_id", None)
     return doc
 
@@ -90,19 +126,35 @@ def list_employees(department: Optional[str] = None, page: int = 1, page_size: i
     q = {}
     if department:
         q["department"] = department
-    skip = page * page_size
-    total = db.employees.count_documents({})
-    items = list(db.employees.find(q, {"_id": 0}).skip(skip).limit(page_size))
+
+    skip = (page - 1) * page_size  
+    total = db.employees.count_documents(q)  
+
+    items = list(
+        db.employees.find(q, {"_id": 0})
+        .sort("emp_code", 1) 
+        .skip(skip)
+        .limit(page_size))
+
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @app.post("/attendance/punch-in", status_code=201)
 def punch_in(body: PunchInIn):
     emp = db.employees.find_one({"emp_code": body.emp_code})
+    if emp is None:
+        raise HTTPException(404, "employee not found")
+
     ts = datetime.fromtimestamp(body.punched_at / 1000) if body.punched_at else datetime.now()
     d = ts.date().isoformat()
+
+    shift_start = emp["shift_start"]
+    if emp["shift_end"] <= shift_start and ts.strftime("%H:%M") < emp["shift_end"]:
+        d = (ts.date() - timedelta(days=1)).isoformat()
+
     if db.attendance_logs.find_one({"emp_code": body.emp_code, "date": d}):
         raise HTTPException(409, "already punched in for this date")
+
     doc = {
         "emp_code": body.emp_code,
         "date": d,
@@ -115,7 +167,12 @@ def punch_in(body: PunchInIn):
         "half_day": False,
         "history": [],
     }
-    res = db.attendance_logs.insert_one(doc)
+
+    try:
+        res = db.attendance_logs.insert_one(doc)
+    except DuplicateKeyError:
+        raise HTTPException(409, "already punched in for this date")
+
     doc["id"] = str(res.inserted_id)
     doc.pop("_id", None)
     return doc
