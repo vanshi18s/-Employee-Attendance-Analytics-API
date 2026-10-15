@@ -1,26 +1,56 @@
-# Candidate kit
+```markdown
+# Employee Attendance & Analytics API
 
-Read in this order:
+This repository contains the backend for the HROne Employee Attendance & Analytics system, built with FastAPI and MongoDB. It handles employee attendance tracking, manual regularization (corrections), and complex aggregations for HR analytics.
 
-1. `PROBLEM_STATEMENT.docx`: what you are asked to do, how it is evaluated.
-2. `openapi.yaml`: the API contract and the business rules (R1 - R10).
-3. `DATA_MODEL.md`: what is stored in MongoDB, with nine sample documents.
-4. `app/main.py`: the starter. Put **all** your code in this one file. It must start with `uvicorn app.main:app --port 8000`.
-5. `REVIEW.md`, `DECISIONS.md`: templates to fill in.
+## Included Documentation
+* `app/main.py`: Contains the complete application code, including all endpoints, helpers, and MongoDB aggregation pipelines.
+* `REVIEW.md`: Details the defects found in the starter code and the specific fixes applied.
+* `DECISIONS.md`: Explains the architectural decisions, index choices, concurrency handling, and scaling considerations.
+* `requirements.txt`: Lists all required Python dependencies.
 
-`sample_data/` holds the nine sample documents as MongoDB Extended JSON; `sample_seed.py` loads them. The grader's dataset is
-much larger and contains cases they do not show.
+## How to Run
 
-## Local setup
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env            # set MONGO_URI / MONGO_DB (local docker: docker run -p 27017:27017 mongo:7)
-python sample_seed.py
-uvicorn app.main:app --port 8000 --reload
+1. **Set up the virtual environment:**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+   pip install -r requirements.txt
+
 ```
-MongoDB **6.0 or newer** is required (the grader uses 7.0). MongoDB Atlas free tier (M0) works.
 
-## Submit
-A public Git repository with `app/main.py`, `requirements.txt`, `REVIEW.md`, `DECISIONS.md` and a short `README.md`.
-No `.env`, no secrets, no Dockerfile.
+2. **Configure Environment Variables:**
+Create a `.env` file in the root directory and set your MongoDB connection details. (Alternatively, you can copy from a `.env.example` if you have one):
+```env
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=attendance_db
+
+```
+
+
+*Note: If testing locally, you can spin up a MongoDB container using:* `docker run -p 27017:27017 mongo:7`
+3. **(Optional) Seed the Database:**
+If you have the sample data script provided in the candidate kit, run it to populate initial data:
+```bash
+python sample_seed.py
+
+```
+
+
+4. **Start the FastAPI Server:**
+```bash
+uvicorn app.main:app --port 8000 --reload
+
+```
+
+
+The API will be available at `http://localhost:8000`. You can explore the interactive API documentation (Swagger UI) at `http://localhost:8000/docs`.
+
+## Developer Notes
+
+* **Starter Code Review:** I thoroughly reviewed the provided starter template. While I fixed the bugs explicitly documented in `REVIEW.md` (such as concurrency issues and improper pagination), I also examined several other helper functions and existing structures but ultimately decided not to change them. They successfully met the strict problem statement constraints without the need for unnecessary over-engineering.
+* **Indexes & Concurrency:** Required indexes (like the unique compound index on `emp_code` and `date`) are created idempotently at application startup to ensure race-safe punch-ins and fast analytical queries.
+
+```
+
+```
